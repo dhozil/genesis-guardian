@@ -1,0 +1,24 @@
+{
+  "network": "studionet",
+  "chain_id": 61999,
+  "address": "0x0a138C4F8d5E7F06f597a8203F1B9916a552D8B3",
+  "deploy_tx": "0xa70c80629056764261adabe6e26d4a3f519cc28a3abd8197929312ed298d21e6",
+  "status": "FINALIZED",
+  "result": "MAJORITY_AGREE",
+  "exec_ok": true,
+  "governance": "0x3958A649b41cd7C8561F4233cC0F5b0469Bc98E0",
+  "bootstrap_policy": {
+    "min_confidence": "MEDIUM",
+    "min_corroborating_sources": 2,
+    "allowed_threat_levels": [
+      "HIGH",
+      "CRITICAL"
+    ],
+    "allowed_actions": [
+      "PAUSE_TARGET"
+    ],
+    "cooldown_seconds": 3600
+  },
+  "deployed_at": "2026-11-04T03:17:36.169017+00:00",
+  "source_bytes": 56504
+}

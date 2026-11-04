@@ -1,0 +1,19 @@
+networks:
+  default: localnet
+  localnet: null
+  studionet:
+    id: 61999
+    url: https://studio.genlayer.com/api
+    accounts:
+      - ${GENLAYER_DEV_KEY}
+    from: ${GENLAYER_DEV_KEY}
+    leader_only: false
+    default_wait_interval: 3000
+    default_wait_retries: 60
+    chain_type: studionet
+
+paths:
+  contracts: contracts
+  artifacts: artifacts
+
+environment: D:\Genlayer-project\wallet\.env

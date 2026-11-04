@@ -1,0 +1,30 @@
+# --- secrets / env ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+artifacts/
+
+# --- node / next ---
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+.vercel/
+
+# --- logs / local junk ---
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# --- tooling markers ---
+.freebuff/

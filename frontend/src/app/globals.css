@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Obsidian base with a faint plum undertone — colder than pure black. */
+  --color-ink: #0b0a0f;
+  --color-ink-2: #101018;
+  --color-panel: #15161f;
+  --color-panel-2: #1c1e2a;
+  --color-line: #2b2e3d;
+
+  /* Ember signal: the brand accent (confidence/urgency, not "hacker green"). */
+  --color-signal: #ff8a3d;
+  --color-signal-dim: #c96a2b;
+
+  /* Semantics stay distinct from the accent. */
+  --color-ok: #46e0b0;
+  --color-warn: #ffc24b;
+  --color-bad: #ff5470;
+
+  --color-text: #f5f1e8;
+  --color-muted: #9ba0b4;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgb(255 138 61 / 0.28);
+    color: #fff;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+
+  /* Tailwind v4 no longer sets `cursor: pointer` on buttons, and the browser
+     default for <summary>/<select> is inconsistent — do it explicitly here. */
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  summary,
+  select:not(:disabled),
+  label[for] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0b0a0f;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a2e3d;
+    border-radius: 999px;
+    border: 2px solid #0b0a0f;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3d4256;
+  }
+}
+
+@layer utilities {
+  /* Faint tactical grid used behind the hero and console sections. */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgb(255 138 61 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 138 61 / 0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+    background-position: center;
+  }
+
+  .bg-radial-signal {
+    background-image: radial-gradient(
+      circle at 50% 40%,
+      rgb(255 138 61 / 0.16) 0%,
+      rgb(120 60 30 / 0.12) 38%,
+      transparent 70%
+    );
+  }
+
+  .glass {
+    background-color: rgb(21 22 31 / 0.72);
+    backdrop-filter: blur(14px);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .mono-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .animate-scan {
+    animation: scan 7s linear infinite;
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 2.6s ease-in-out infinite;
+  }
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.55;
+  }
+  90% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(1200%);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 138 61 / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgb(255 138 61 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan,
+  .animate-pulse-ring {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
