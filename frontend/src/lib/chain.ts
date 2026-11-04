@@ -18,14 +18,11 @@ export const GUARDIAN_CHAIN = {
 } as const;
 
 /**
- * Deployed GenesisGuardian used by the console.
- * Override with VITE_GUARDIAN_ADDRESS to point at your own deployment.
- */
-/**
  * The studionet RPC answers without `Access-Control-Allow-Origin`, so a browser
- * cannot call it cross-origin. In dev/preview we read through the Vite proxy at
- * the same origin; a deployed build should set VITE_GENLAYER_RPC to a
- * CORS-enabled endpoint (or serve the same proxy in front of it).
+ * cannot call it cross-origin. Reads therefore go through the same-origin
+ * Next.js route handler at `/genlayer-rpc` (see app/genlayer-rpc/route.ts),
+ * which works in dev and in a deployed build alike. Set
+ * NEXT_PUBLIC_GENLAYER_RPC only to bypass that proxy with a CORS-enabled URL.
  */
 function resolveRpcUrl(): string {
   const override = (process.env.NEXT_PUBLIC_GENLAYER_RPC as string | undefined)?.trim();
@@ -38,6 +35,8 @@ function resolveRpcUrl(): string {
 
 export const GENLAYER_RPC: string = resolveRpcUrl();
 
+/** Deployed GenesisGuardian used by the console (override with
+ * NEXT_PUBLIC_GUARDIAN_ADDRESS to point at your own deployment). */
 export const GUARDIAN_ADDRESS: string =
   (process.env.NEXT_PUBLIC_GUARDIAN_ADDRESS as string | undefined)?.trim() ||
   "0x0a138C4F8d5E7F06f597a8203F1B9916a552D8B3";
