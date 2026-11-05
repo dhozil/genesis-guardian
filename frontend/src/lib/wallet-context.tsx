@@ -20,33 +20,30 @@ const WalletContext = React.createContext<GuardianWallet | null>(null);
  */
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const wallet = useWallet();
-  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerRequested, setPickerRequested] = React.useState(false);
   const [pendingRdns, setPendingRdns] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (wallet.status === "connected") {
-      setPickerOpen(false);
-      setPendingRdns(null);
-    }
-    if (wallet.status === "disconnected" && wallet.error) {
-      setPendingRdns(null);
-    }
-  }, [wallet.error, wallet.status]);
+  // Derived instead of effect-synced: once the wallet connects the picker is
+  // closed by definition, so no setState-in-effect is needed.
+  const pickerOpen = pickerRequested && wallet.status !== "connected";
 
   const openPicker = React.useCallback(() => {
     wallet.clearError();
-    setPickerOpen(true);
+    setPickerRequested(true);
   }, [wallet]);
 
   const closePicker = React.useCallback(() => {
-    if (wallet.status !== "connecting") setPickerOpen(false);
+    if (wallet.status !== "connecting") setPickerRequested(false);
   }, [wallet.status]);
 
   const select = React.useCallback(
     async (rdns: string) => {
       setPendingRdns(rdns);
-      await wallet.connect(rdns);
-      setPendingRdns(null);
+      try {
+        await wallet.connect(rdns);
+      } finally {
+        setPendingRdns(null);
+      }
     },
     [wallet],
   );

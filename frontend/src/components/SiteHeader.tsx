@@ -74,8 +74,6 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
 
-  React.useEffect(() => setOpen(false), [pathname]);
-
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
@@ -136,18 +134,18 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           className="border-t border-line bg-ink/95 px-5 py-4 md:hidden"
         >
           <nav className="flex flex-col gap-1" aria-label="Mobile">
-            {NAV_LINKS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive(item.href) ? "page" : undefined}
-                className={cn(
-                  "rounded-lg px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] transition-colors",
-                  isActive(item.href)
-                    ? "bg-signal/10 text-signal"
-                    : "text-white/70 hover:bg-panel-2/60",
-                )}
-              >
+            {NAV_LINKS.map((item) => (                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={cn(
+                    "rounded-lg px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] transition-colors",
+                    isActive(item.href)
+                      ? "bg-signal/10 text-signal"
+                      : "text-white/70 hover:bg-panel-2/60",
+                  )}
+                >
                 {item.label}
               </Link>
             ))}

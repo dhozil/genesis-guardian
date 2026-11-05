@@ -19,7 +19,7 @@ export function GuardianLogo({
         <Fingerprint className="size-4 text-signal" aria-hidden="true" />
       </span>
       <span className="font-mono text-[13px] tracking-[0.18em] text-white">
-        GENESIS<span className="text-signal">//</span>GUARDIAN
+        GENESIS<span className="text-signal">{"//"}</span>GUARDIAN
       </span>
     </Link>
   );

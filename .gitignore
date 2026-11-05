@@ -28,3 +28,6 @@ Thumbs.db
 
 # --- tooling markers ---
 .freebuff/
+
+# TypeScript incremental build info
+*.tsbuildinfo

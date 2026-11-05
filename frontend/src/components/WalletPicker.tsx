@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import Image from "next/image";
 import { AlertTriangle, ChevronRight, Loader2, Wallet, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,14 @@ import type { DetectedWallet, WalletError } from "@/hooks/useWallet";
 function WalletIcon({ wallet }: { wallet: DetectedWallet }) {
   if (wallet.icon) {
     return (
-      <img
+      <Image
         src={wallet.icon}
         alt=""
+        width={32}
+        height={32}
+        // Wallet icons arrive as data URLs or arbitrary EIP-6963 URLs, so the
+        // optimizer is skipped — <Image> still gives us the element sizing.
+        unoptimized
         className="size-8 rounded-lg"
         referrerPolicy="no-referrer"
       />

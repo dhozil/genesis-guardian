@@ -68,6 +68,10 @@ function normalizeList(value: unknown): string[] {
   return [];
 }
 
+function sameIds(a: string[], b: string[]) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
 const EMPTY: Snapshot = {
   ids: [],
   incident: null,
@@ -126,6 +130,224 @@ function writeMineIds(contract: string, ids: string[]) {
   } catch {
     // Private mode / disabled storage: ownership is then inferred from reporter.
   }
+}
+
+type NextAction =
+  | { kind: "tab"; tab: Tab }
+  | {
+      kind: "write";
+      key: string;
+      fn: string;
+      args: unknown[];
+      rotations?: number;
+    };
+
+interface NextStepView {
+  title: string;
+  body: string;
+  cta?: {
+    label: string;
+    action: NextAction;
+    variant?: "primary" | "danger" | "outline" | "subtle";
+    busyKey?: string;
+    loadingText?: string;
+    icon?: React.ReactNode;
+  };
+}
+
+/**
+ * Pure: the recommended step is described as data, so rendering never captures
+ * a closure over a ref (which the React rules reject) and the whole flow is
+ * easy to read in one place.
+ */
+function computeNextStep({
+  incidentId,
+  status,
+  phase,
+  hasAssessment,
+}: {
+  incidentId: string;
+  status?: string;
+  phase: string;
+  hasAssessment: boolean;
+}): NextStepView {
+  if (!incidentId) {
+    return {
+      title: "Start with a report of your own",
+      body: "The list above holds every report on this contract, including other wallets' submissions. File one to get an incident you can drive through the lifecycle, or select an existing row to inspect it.",
+      cta: {
+        label: "Open the report form",
+        action: { kind: "tab", tab: "report" },
+        icon: <FileWarning className="size-3.5" />,
+      },
+    };
+  }
+  if (phase === "EMERGENCY_PENDING") {
+    return {
+      title: "Confirm the pause",
+      body: "Initiation only armed the protocol. A second transaction applies the pause — that is why a single click can never halt a contract.",
+      cta: {
+        label: "Confirm & pause",
+        action: {
+          kind: "write",
+          key: "confirmEmergency",
+          fn: "confirmEmergency",
+          args: [incidentId],
+        },
+        variant: "danger",
+        busyKey: "confirmEmergency",
+        loadingText: "Pausing",
+        icon: <Lock className="size-3.5" />,
+      },
+    };
+  }
+  if (phase === "EMERGENCY_ACTIVE") {
+    return {
+      title: "Recovery is a governance action",
+      body: "The protocol is paused and locked. Only the governance wallet can request recovery; anyone may then confirm it after the request is final.",
+      cta: {
+        label: "Request recovery",
+        action: {
+          kind: "write",
+          key: "requestRecovery",
+          fn: "requestRecovery",
+          args: [incidentId, "exploit contained — resuming monitored operation"],
+        },
+        variant: "outline",
+        busyKey: "requestRecovery",
+        loadingText: "Requesting",
+        icon: <Unlock className="size-3.5" />,
+      },
+    };
+  }
+  if (phase === "RECOVERY_PENDING") {
+    return {
+      title: "Confirm the recovery",
+      body: "Recovery has been requested. Confirming unpauses the protocol and clears the lock.",
+      cta: {
+        label: "Confirm recovery",
+        action: {
+          kind: "write",
+          key: "confirmRecovery",
+          fn: "confirmRecovery",
+          args: [incidentId],
+        },
+        busyKey: "confirmRecovery",
+        loadingText: "Unpausing",
+        icon: <ShieldCheck className="size-3.5" />,
+      },
+    };
+  }
+  if (phase === "RECOVERED") {
+    return {
+      title: "Finish the cycle",
+      body: "The protocol has recovered. Resetting returns it to NORMAL and clears the active incident.",
+      cta: {
+        label: "Reset to normal",
+        action: { kind: "write", key: "reset", fn: "resetToNormal", args: [] },
+        variant: "subtle",
+        busyKey: "reset",
+        loadingText: "Resetting",
+      },
+    };
+  }
+  if (status === "SUBMITTED") {
+    return {
+      title: "Start the investigation",
+      body: "Moves SUBMITTED → UNDER_INVESTIGATION. The contract requires at least one evidence row before an incident can be investigated.",
+      cta: {
+        label: "Start investigation",
+        action: {
+          kind: "write",
+          key: "startInvestigation",
+          fn: "startInvestigation",
+          args: [incidentId],
+        },
+        busyKey: "startInvestigation",
+        loadingText: "Starting",
+        icon: <Play className="size-3.5" />,
+      },
+    };
+  }
+  if (status === "UNDER_INVESTIGATION" && !hasAssessment) {
+    return {
+      title: "Run the AI assessment",
+      body: "Every validator runs the LLM and fetches your sources, then must agree. Expect about a minute, and a possible MAJORITY_DISAGREE retry that writes nothing.",
+      cta: {
+        label: "Run AI assess",
+        action: {
+          kind: "write",
+          key: "assess",
+          fn: "assess",
+          args: [incidentId],
+          rotations: 5,
+        },
+        busyKey: "assess",
+        loadingText: "AI consensus…",
+        icon: <Wand2 className="size-3.5" />,
+      },
+    };
+  }
+  if (status === "UNDER_INVESTIGATION") {
+    return {
+      title: "Sync the decision",
+      body: "Turns the stored assessment into a decision: CONFIRMED, REJECTED or INCONCLUSIVE. Only CONFIRMED unlocks the emergency powers.",
+      cta: {
+        label: "Sync decision",
+        action: {
+          kind: "write",
+          key: "syncDecision",
+          fn: "syncDecision",
+          args: [incidentId],
+        },
+        busyKey: "syncDecision",
+        loadingText: "Deciding",
+        icon: <GitBranch className="size-3.5" />,
+      },
+    };
+  }
+  if (status === "CONFIRMED") {
+    return {
+      title: "Initiate the emergency",
+      body: "Checks the policy gates (threat level, confidence, corroborating sources, cooldown) before arming a pause for this incident.",
+      cta: {
+        label: "Initiate emergency",
+        action: {
+          kind: "write",
+          key: "initiate",
+          fn: "initiateEmergency",
+          args: [incidentId],
+        },
+        variant: "danger",
+        busyKey: "initiate",
+        loadingText: "Checking gates",
+        icon: <ShieldAlert className="size-3.5" />,
+      },
+    };
+  }
+  if (status === "RESOLVED") {
+    return {
+      title: "This incident is closed",
+      body: "Its history is final. Reopen it with reassess if new evidence arrives, or select another incident from the list.",
+    };
+  }
+  return {
+    title: "Decide what happens next",
+    body: "The AI rejected or could not decide this incident. Add corroborating evidence and reassess, or resolve it as a false positive.",
+    cta: {
+      label: "Reassess",
+      action: {
+        kind: "write",
+        key: "reassess",
+        fn: "reassess",
+        args: [incidentId],
+      },
+      variant: "outline",
+      busyKey: "reassess",
+      loadingText: "Reopening",
+      icon: <Cpu className="size-3.5" />,
+    },
+  };
 }
 
 function Section({
@@ -287,12 +509,6 @@ export function IncidentConsole({
   const mineRef = React.useRef<string[]>([]);
   const autoRouted = React.useRef(false);
 
-  React.useEffect(() => {
-    const ids = readMineIds(GUARDIAN_ADDRESS);
-    mineRef.current = ids;
-    setMine(ids);
-  }, []);
-
   const rememberMine = React.useCallback((incidentId: string) => {
     if (!incidentId) return;
     const next = Array.from(new Set([...mineRef.current, incidentId]));
@@ -301,11 +517,10 @@ export function IncidentConsole({
     writeMineIds(GUARDIAN_ADDRESS, next);
   }, []);
 
-  const load = React.useCallback(async (preferred?: string, silent = false) => {
-    if (silent) setRefreshing(true);
-    else setLoading(true);
-    setReadError(null);
-
+  const load = React.useCallback(async (preferred?: string) => {
+    // Nothing is written to state before the first await: an effect may kick
+    // this off, and the React rule set rejects synchronous setState there.
+    // Callers own the "refreshing" flag.
     try {
       // Deliberately few reads: get_state already carries policy version, paused
       // flag, governance and history length, and studionet caps reads at 30/min.
@@ -315,10 +530,15 @@ export function IncidentConsole({
         tryReadMethod<Policy | null>("get_policy", [], null),
       ]);
 
+      // Re-read on every refresh so a report filed in another tab is picked up.
+      const stored = readMineIds(GUARDIAN_ADDRESS);
+      mineRef.current = stored;
+      setMine((current) => (sameIds(current, stored) ? current : stored));
+
       const list = normalizeList(rawIds);
       // Preselect only something this browser filed. Falling back to the last
       // global incident showed a stranger's report as if it were the visitor's.
-      const own = mineRef.current.filter((id) => list.includes(id));
+      const own = stored.filter((id) => list.includes(id));
       const target =
         (preferred && list.includes(preferred) ? preferred : "") ||
         (selected && list.includes(selected) ? selected : "") ||
@@ -352,27 +572,29 @@ export function IncidentConsole({
         pauseSupported: false,
       });
       setSelected(target);
+      setReadError(null);
+
+      // A visitor with nothing selected has no actionable screen, so open the
+      // form that creates their first incident instead of an empty action grid.
+      if (!target && !autoRouted.current) {
+        autoRouted.current = true;
+        setTab("report");
+      }
     } catch (error) {
       setReadError(humanizeReadError(error));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   React.useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // A visitor with nothing selected has no actionable screen, so open the form
-  // that creates their first incident instead of an empty action grid.
-  React.useEffect(() => {
-    if (loading || autoRouted.current) return;
-    autoRouted.current = true;
-    if (!selected) setTab("report");
-  }, [loading, selected]);
+    // The first read is scheduled, not run in the effect body: `load` writes
+    // state, and a synchronous write here would cascade a render. The timer
+    // keeps it a callback, which is what the effect is allowed to do.
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const runWrite = async (
     key: string,
@@ -418,7 +640,7 @@ export function IncidentConsole({
         onUpdate: (patch) => setTx((current) => ({ ...current, ...patch })),
       });
       if (outcome.phase === "success") {
-        await load(options?.successRefresh ?? selected, true);
+        await load(options?.successRefresh ?? selected);
         options?.onSuccess?.();
       }
     } catch (caught) {
@@ -452,6 +674,30 @@ export function IncidentConsole({
     status && ["CONFIRMED", "REJECTED", "INCONCLUSIVE"].includes(status),
   );
 
+  const next = computeNextStep({
+    incidentId: iid,
+    status,
+    phase,
+    hasAssessment: Boolean(snapshot.assessment),
+  });
+
+  const runNextStep = () => {
+    const cta = next.cta;
+    if (!cta) return;
+    if (cta.action.kind === "tab") {
+      setTab(cta.action.tab);
+      return;
+    }
+    void runWrite(cta.action.key, cta.action.fn, cta.action.args, {
+      consensusMaxRotations: cta.action.rotations,
+    });
+  };
+
+  const refresh = () => {
+    setRefreshing(true);
+    void load(selected);
+  };
+
   const blocked = (allowed: boolean, reason: string) =>
     !canWrite
       ? "Connect a wallet on Genlayer Studio Network first."
@@ -459,166 +705,12 @@ export function IncidentConsole({
         ? undefined
         : reason;
 
-  const run = (key: string, fn: string, args: unknown[], rotations?: number) =>
-    void runWrite(key, fn, args, { consensusMaxRotations: rotations });
-
-  const next: {
-    title: string;
-    body: string;
-    cta?: {
-      label: string;
-      onClick: () => void;
-      variant?: "primary" | "danger" | "outline" | "subtle";
-      busyKey?: string;
-      loadingText?: string;
-      icon?: React.ReactNode;
-    };
-  } = (() => {
-    if (!iid) {
-      return {
-        title: "Start with a report of your own",
-        body: "The list above holds every report on this contract, including other wallets' submissions. File one to get an incident you can drive through the lifecycle, or select an existing row to inspect it.",
-        cta: {
-          label: "Open the report form",
-          onClick: () => setTab("report"),
-          icon: <FileWarning className="size-3.5" />,
-        },
-      };
-    }
-    if (phase === "EMERGENCY_PENDING") {
-      return {
-        title: "Confirm the pause",
-        body: "Initiation only armed the protocol. A second transaction applies the pause — that is why a single click can never halt a contract.",
-        cta: {
-          label: "Confirm & pause",
-          onClick: () => run("confirmEmergency", "confirmEmergency", [iid]),
-          variant: "danger",
-          busyKey: "confirmEmergency",
-          loadingText: "Pausing",
-          icon: <Lock className="size-3.5" />,
-        },
-      };
-    }
-    if (phase === "EMERGENCY_ACTIVE") {
-      return {
-        title: "Recovery is a governance action",
-        body: "The protocol is paused and locked. Only the governance wallet can request recovery; anyone may then confirm it after the request is final.",
-        cta: {
-          label: "Request recovery",
-          onClick: () =>
-            run("requestRecovery", "requestRecovery", [
-              iid,
-              "exploit contained — resuming monitored operation",
-            ]),
-          variant: "outline",
-          busyKey: "requestRecovery",
-          loadingText: "Requesting",
-          icon: <Unlock className="size-3.5" />,
-        },
-      };
-    }
-    if (phase === "RECOVERY_PENDING") {
-      return {
-        title: "Confirm the recovery",
-        body: "Recovery has been requested. Confirming unpauses the protocol and clears the lock.",
-        cta: {
-          label: "Confirm recovery",
-          onClick: () => run("confirmRecovery", "confirmRecovery", [iid]),
-          busyKey: "confirmRecovery",
-          loadingText: "Unpausing",
-          icon: <ShieldCheck className="size-3.5" />,
-        },
-      };
-    }
-    if (phase === "RECOVERED") {
-      return {
-        title: "Finish the cycle",
-        body: "The protocol has recovered. Resetting returns it to NORMAL and clears the active incident.",
-        cta: {
-          label: "Reset to normal",
-          onClick: () => run("reset", "resetToNormal", []),
-          variant: "subtle",
-          busyKey: "reset",
-          loadingText: "Resetting",
-        },
-      };
-    }
-    if (status === "SUBMITTED") {
-      return {
-        title: "Start the investigation",
-        body: "Moves SUBMITTED → UNDER_INVESTIGATION. The contract requires at least one evidence row before an incident can be investigated.",
-        cta: {
-          label: "Start investigation",
-          onClick: () => run("startInvestigation", "startInvestigation", [iid]),
-          busyKey: "startInvestigation",
-          loadingText: "Starting",
-          icon: <Play className="size-3.5" />,
-        },
-      };
-    }
-    if (status === "UNDER_INVESTIGATION" && !snapshot.assessment) {
-      return {
-        title: "Run the AI assessment",
-        body: "Every validator runs the LLM and fetches your sources, then must agree. Expect about a minute, and a possible MAJORITY_DISAGREE retry that writes nothing.",
-        cta: {
-          label: "Run AI assess",
-          onClick: () => run("assess", "assess", [iid], 5),
-          busyKey: "assess",
-          loadingText: "AI consensus…",
-          icon: <Wand2 className="size-3.5" />,
-        },
-      };
-    }
-    if (status === "UNDER_INVESTIGATION") {
-      return {
-        title: "Sync the decision",
-        body: "Turns the stored assessment into a decision: CONFIRMED, REJECTED or INCONCLUSIVE. Only CONFIRMED unlocks the emergency powers.",
-        cta: {
-          label: "Sync decision",
-          onClick: () => run("syncDecision", "syncDecision", [iid]),
-          busyKey: "syncDecision",
-          loadingText: "Deciding",
-          icon: <GitBranch className="size-3.5" />,
-        },
-      };
-    }
-    if (status === "CONFIRMED") {
-      return {
-        title: "Initiate the emergency",
-        body: "Checks the policy gates (threat level, confidence, corroborating sources, cooldown) before arming a pause for this incident.",
-        cta: {
-          label: "Initiate emergency",
-          onClick: () => run("initiate", "initiateEmergency", [iid]),
-          variant: "danger",
-          busyKey: "initiate",
-          loadingText: "Checking gates",
-          icon: <ShieldAlert className="size-3.5" />,
-        },
-      };
-    }
-    if (status === "RESOLVED") {
-      return {
-        title: "This incident is closed",
-        body: "Its history is final. Reopen it with reassess if new evidence arrives, or select another incident from the list.",
-      };
-    }
-    return {
-      title: "Decide what happens next",
-      body: "The AI rejected or could not decide this incident. Add corroborating evidence and reassess, or resolve it as a false positive.",
-      cta: {
-        label: "Reassess",
-        onClick: () => run("reassess", "reassess", [iid]),
-        variant: "outline",
-        busyKey: "reassess",
-        loadingText: "Reopening",
-        icon: <Cpu className="size-3.5" />,
-      },
-    };
-  })();
-
   function actionDisabled(condition: boolean) {
     return busy !== null || !canWrite || !condition;
   }
+
+  const run = (key: string, fn: string, args: unknown[], rotations?: number) =>
+    void runWrite(key, fn, args, { consensusMaxRotations: rotations });
 
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: "orchestrate", label: "Lifecycle" },
@@ -779,7 +871,7 @@ export function IncidentConsole({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => void load(selected, true)}
+                onClick={refresh}
                 loading={refreshing}
                 loadingText="Reading"
               >
@@ -819,7 +911,8 @@ export function IncidentConsole({
                             onClick={() => {
                               setSelected(id);
                               setTab("orchestrate");
-                              void load(id, true);
+                              setRefreshing(true);
+                              void load(id);
                             }}
                             className={cn(
                               "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors",
@@ -971,7 +1064,7 @@ export function IncidentConsole({
                       <Button
                         className="mt-3 w-full sm:w-auto"
                         variant={next.cta.variant ?? "primary"}
-                        onClick={next.cta.onClick}
+                        onClick={runNextStep}
                         loading={Boolean(next.cta.busyKey) && busy === next.cta.busyKey}
                         loadingText={next.cta.loadingText ?? "Working"}
                         disabled={busy !== null || !canWrite}
@@ -1206,6 +1299,7 @@ export function IncidentConsole({
 
               {tab === "governance" && (
                 <PolicyForm
+                  key={snapshot.version ?? 0}
                   policy={snapshot.policy}
                   version={snapshot.version}
                   disabled={busy !== null || !canWrite}
@@ -1229,7 +1323,7 @@ export function IncidentConsole({
             evidence={snapshot.evidence}
             loading={loading}
             refreshing={refreshing}
-            onRefresh={() => void load(selected, true)}
+            onRefresh={refresh}
           />
 
           <Section
@@ -1685,15 +1779,13 @@ function PolicyForm({
   onSetPolicy: (json: string) => void;
   onRollback: (version: number) => void;
 }) {
+  // Remounted via `key` whenever the policy version changes, so the editor
+  // starts from the live policy without an effect-synced mirror.
   const [payload, setPayload] = React.useState(() =>
     policy ? JSON.stringify(policy, null, 2) : "",
   );
   const [target, setTarget] = React.useState("1");
   const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (policy) setPayload(JSON.stringify(policy, null, 2));
-  }, [policy]);
 
   const apply = () => {
     if (busy || disabled) return;
