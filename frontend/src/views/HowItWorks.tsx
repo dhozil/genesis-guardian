@@ -99,7 +99,7 @@ const STATES = [
 
 const POLICY = [
   ["min_confidence", "LOW · MEDIUM · HIGH", "The assessment must rank at least this high."],
-  ["min_corroborating_sources", "0 – 10", "How many VERIFIED sources are required before an action passes."],
+  ["min_corroborating_sources", "1 – 10", "How many VERIFIED sources are required before an action passes."],
   ["allowed_threat_levels", "subset of NONE … CRITICAL", "Verdicts outside the set cannot authorise anything."],
   ["allowed_actions", "PAUSE_TARGET · INVESTIGATE", "Which recommendations the protocol is willing to honour."],
   ["cooldown_seconds", "≤ 604800", "Minimum spacing between protocol-level changes."],

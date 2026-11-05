@@ -1,6 +1,6 @@
 import { Activity } from "lucide-react";
 import { GUARDIAN_ADDRESS, GUARDIAN_CHAIN } from "@/lib/chain";
-import { shortHex } from "@/lib/utils";
+import { cn, shortHex } from "@/lib/utils";
 import type { ProtocolState } from "@/lib/types";
 
 /** Live protocol telemetry card. Reads only — never needs a wallet. */
@@ -11,9 +11,20 @@ export function ProtocolTelemetry({ protocol }: { protocol: ProtocolState | null
     <div className="w-full max-w-sm rounded-2xl border border-signal/25 bg-ink/80 p-5 shadow-[0_0_70px_-20px_rgba(255,138,61,0.6)] backdrop-blur-md">
       <div className="flex items-center justify-between">
         <span className="mono-label">Protocol telemetry</span>
-        <span className="flex items-center gap-1.5 font-mono text-[10px] text-ok">
-          <span className="size-1.5 animate-pulse-ring rounded-full bg-ok" />
-          live
+        {/* Only claim "live" once a read has actually landed. */}
+        <span
+          className={cn(
+            "flex items-center gap-1.5 font-mono text-[10px]",
+            protocol ? "text-ok" : "text-muted",
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              protocol ? "animate-pulse-ring bg-ok" : "bg-muted/50",
+            )}
+          />
+          {protocol ? "live" : "reading"}
         </span>
       </div>
 
