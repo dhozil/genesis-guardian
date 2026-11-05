@@ -7,7 +7,7 @@ import { shortHex } from "@/lib/utils";
 import { useGuardianWallet } from "@/lib/wallet-context";
 
 export function ConsolePage() {
-  const { wallet } = useGuardianWallet();
+  const { wallet, openPicker } = useGuardianWallet();
 
   return (
     <div className="relative">
@@ -20,9 +20,10 @@ export function ConsolePage() {
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">
               Every read below is a real <code className="text-signal">gen_call</code>{" "}
-              against {shortHex(GUARDIAN_ADDRESS, 8, 6)}. Writes are signed by your
-              wallet; the console only unlocks the next step once the previous one is
-              finalized.
+              against {shortHex(GUARDIAN_ADDRESS, 8, 6)}. The list shows every report
+              on this contract, but only <span className="text-text">your own</span>{" "}
+              report is preselected — file one to get an incident you can drive
+              yourself.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge
@@ -43,7 +44,7 @@ export function ConsolePage() {
           <WalletChip />
         </header>
 
-        <IncidentConsole wallet={wallet} />
+        <IncidentConsole wallet={wallet} onConnect={openPicker} />
       </div>
     </div>
   );
