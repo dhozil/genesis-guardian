@@ -846,7 +846,7 @@ export function IncidentConsole({
             <StartStep
               step="3"
               title="Move it forward"
-              body="Start the investigation, run the AI assess, then sync the decision."
+              body="Start the investigation, run the AI assess, then sync the decision. Any connected wallet can run these — not just the reporter."
               action={
                 <Button size="sm" variant="ghost" onClick={() => setTab("orchestrate")}>
                   Open lifecycle
@@ -1001,8 +1001,9 @@ export function IncidentConsole({
               </p>
               <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted">
                 Reports from other wallets are listed above but never selected for
-                you. Pick a row to inspect it, or file your own report to start a
-                lifecycle you control.
+                you. Pick a row to inspect it, or file your own report. Any wallet
+                can file and move an incident forward — the lifecycle is open to
+                everyone, not just the reporter.
               </p>
               <Button
                 className="mt-3"
@@ -1256,7 +1257,8 @@ export function IncidentConsole({
                   <p className="text-[11px] leading-relaxed text-muted/80">
                     Submitting stores a new incident owned by your wallet and tags
                     it “yours” in the list. It becomes the active incident as soon
-                    as the transaction is committed.
+                    as the transaction is committed. Any wallet on Studio Network
+                    can file — there is no allowlist.
                   </p>
                   <ReportForm
                     busy={busy === "submit_report"}
@@ -1386,7 +1388,7 @@ function ResolveControl({
   const [outcome, setOutcome] = React.useState<"RESOLVED" | "FALSE_POSITIVE">(
     "RESOLVED",
   );
-  const [note, setNote] = React.useState("handled via two-phase pause lifecycle");
+  const [note, setNote] = React.useState("");
 
   return (
     <div className="flex flex-1 flex-wrap items-center gap-2">
@@ -1436,26 +1438,13 @@ function ReportForm({
   const [incidentId, setIncidentId] = React.useState(
     () => `INC-${Date.now().toString(36).slice(-5).toUpperCase()}`,
   );
-  const [target, setTarget] = React.useState("0xTargetContract");
+  const [target, setTarget] = React.useState("");
   const [network, setNetwork] = React.useState("studionet");
-  const [hashes, setHashes] = React.useState("0xtxhash1, 0xtxhash2");
+  const [hashes, setHashes] = React.useState("");
   const [wallets, setWallets] = React.useState("");
-  const [description, setDescription] = React.useState(
-    "Active exploit reported: treasury outflows observed; pause target to stop losses.",
-  );
+  const [description, setDescription] = React.useState("");
   const [evidence, setEvidence] = React.useState([
-    {
-      source_type: "EXTERNAL",
-      category: "external",
-      reference: "https://example.com/",
-      summary: "Independent write-up describes ongoing drain of the target treasury.",
-    },
-    {
-      source_type: "EXTERNAL",
-      category: "external",
-      reference: "https://docs.genlayer.com/",
-      summary: "Reference documentation reachable for corroboration during assessment.",
-    },
+    { source_type: "EXTERNAL", category: "external", reference: "", summary: "" },
   ]);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -1463,6 +1452,10 @@ function ReportForm({
     if (busy || disabled) return; // double-submit guard
     if (!incidentId.trim()) {
       setError("Incident id is required.");
+      return;
+    }
+    if (!target.trim()) {
+      setError("Target contract is required.");
       return;
     }
     if (description.trim().length === 0) {
@@ -1511,12 +1504,12 @@ function ReportForm({
             disabled={disabled}
           />
         </div>
-        <div>
-          <Label htmlFor="report-target" required>
-            Target contract
-          </Label>
+        <div>            <Label htmlFor="report-target" required>
+              Target contract
+            </Label>
           <Input
             id="report-target"
+            placeholder="0x… contract under attack"
             value={target}
             onChange={(event) => setTarget(event.target.value)}
             maxLength={128}
@@ -1539,6 +1532,7 @@ function ReportForm({
           </Label>
           <Input
             id="report-tx"
+            placeholder="0xabc…, 0xdef…"
             value={hashes}
             onChange={(event) => setHashes(event.target.value)}
             disabled={disabled}
@@ -1563,6 +1557,7 @@ function ReportForm({
         </Label>
         <Textarea
           id="report-description"
+          placeholder="What happened, what you observed, and why it needs a pause"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           maxLength={4096}
@@ -1682,10 +1677,8 @@ function EvidenceForm({
   const [sourceType, setSourceType] =
     React.useState<(typeof SOURCE_TYPES)[number]>("EXTERNAL");
   const [category, setCategory] = React.useState("external");
-  const [reference, setReference] = React.useState("https://github.com/");
-  const [summary, setSummary] = React.useState(
-    "Corroborating public source confirming the exploit pattern.",
-  );
+  const [reference, setReference] = React.useState("");
+  const [summary, setSummary] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
   const submit = () => {
