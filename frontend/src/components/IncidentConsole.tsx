@@ -713,9 +713,11 @@ export function IncidentConsole({
   const run = (key: string, fn: string, args: unknown[], rotations?: number) =>
     void runWrite(key, fn, args, { consensusMaxRotations: rotations });
 
+  // Filing a report is step one, so it leads the tabs: the lifecycle can only
+  // act on an incident that already exists.
   const tabs: Array<{ id: Tab; label: string }> = [
-    { id: "orchestrate", label: "Lifecycle" },
     { id: "report", label: "Report" },
+    { id: "orchestrate", label: "Lifecycle" },
     { id: "evidence", label: "Evidence" },
     { id: "governance", label: "Governance" },
   ];
