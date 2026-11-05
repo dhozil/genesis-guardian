@@ -634,6 +634,7 @@ export function IncidentConsole({
     try {
       const outcome = await submitAndWait({
         provider,
+        account: wallet.account,
         functionName,
         args,
         consensusMaxRotations: options?.consensusMaxRotations,

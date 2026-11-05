@@ -135,13 +135,16 @@ export async function tryReadMethod<T>(
   }
 }
 
-function walletClient(provider: Eip1193Provider): AnyClient {
-  // The SDK accepts an EIP-1193 provider and asks it to sign; the key never
-  // leaves the wallet extension.
+function walletClient(provider: Eip1193Provider, account: string): AnyClient {
+  // Writes need an account, not just a provider: the SDK validates it before
+  // encoding the call and throws "No account set" otherwise. Passing the bare
+  // address makes viem treat it as a JSON-RPC account, so the signature still
+  // happens in the wallet — no key ever reaches this code.
   return createClient({
     chain: studionet,
     endpoint: GENLAYER_RPC,
     provider: provider as never,
+    account: account as `0x${string}`,
   });
 }
 
@@ -244,13 +247,14 @@ const TERMINAL = new Set(["FINALIZED", "CANCELED", "UNDETERMINED"]);
  */
 export async function submitAndWait(params: {
   provider: Eip1193Provider;
+  account: string;
   functionName: string;
   args: unknown[];
   consensusMaxRotations?: number;
   onUpdate: (patch: Partial<TxOutcome>) => void;
 }): Promise<TxOutcome> {
-  const { provider, functionName, args, consensusMaxRotations, onUpdate } = params;
-  const client = walletClient(provider);
+  const { provider, account, functionName, args, consensusMaxRotations, onUpdate } = params;
+  const client = walletClient(provider, account);
 
   onUpdate({ phase: "submitting", message: undefined, hash: undefined });
 
